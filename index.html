@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kütüphane Yönetim Sistemi</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+        }
+        h1 { color: #333; }
+        .container {
+            max-width: 600px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        input, button {
+            padding: 8px;
+            margin: 5px 0;
+            width: 100%;
+        }
+        button {
+            background-color: #5e4caf;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button.delete {
+            background-color: #5e4caf;
+        }
+        pre {
+            background: #eee;
+            padding: 10px;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            padding: 5px 0;
+            border-bottom: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Kütüphane Yönetimi</h1>
+
+        <h3>Kitap Ekle (ISBN ile)</h3>
+        <input type="text" id="isbn" placeholder="ISBN girin">
+        <button onclick="addBook()">Ekle</button>
+
+        <h3>Kitap Güncelle</h3>
+        <input type="text" id="updateIsbn" placeholder="Güncellenecek ISBN">
+        <input type="text" id="updateTitle" placeholder="Yeni Başlık">
+        <input type="text" id="updateAuthor" placeholder="Yeni Yazar">
+        <input type="number" id="updateYear" placeholder="Yeni Yıl">
+        <button onclick="updateBook()">Güncelle</button>
+
+        <h3>Kitap Sil</h3>
+        <input type="text" id="deleteIsbn" placeholder="Silinecek ISBN">
+        <button class="delete" onclick="deleteBook()">Sil</button>
+
+        <h3>Kitap Listesi</h3>
+        <button onclick="getBooks()">Listele</button>
+        <pre id="bookList"></pre>
+    </div>
+
+    <script>
+        const API_URL = "http://127.0.0.1:8000";
+
+        async function getBooks() {
+            try {
+                const res = await fetch(`${API_URL}/books`);
+                if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
+                const data = await res.json();
+                const bookList = document.getElementById("bookList");
+                bookList.innerHTML = ""; // Önceki içeriği temizle
+                const ul = document.createElement("ul");
+                const books = data.books || data.data || data; // API yanıtına göre ayarlayın
+                if (books.length === 0) {
+                    bookList.textContent = "Henüz kitap eklenmemiş.";
+                    return;
+                }
+                books.forEach(book => {
+                    const li = document.createElement("li");
+                    li.textContent = `${book.title} - ${book.author} (ISBN: ${book.isbn})`;
+                    ul.appendChild(li);
+                });
+                bookList.appendChild(ul);
+            } catch (error) {
+                alert(`Hata: ${error.message}`);
+            }
+        }
+
+        async function addBook() {
+            try {
+                const isbn = document.getElementById("isbn").value;
+                if (!isbn) throw new Error("ISBN boş olamaz!");
+                const res = await fetch(`${API_URL}/books/${isbn}`, { method: "POST" });
+                if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
+                const data = await res.json();
+                alert(data.message || "Kitap eklendi!");
+                getBooks();
+            } catch (error) {
+                alert(`Hata: ${error.message}`);
+            }
+        }
+
+        async function updateBook() {
+            try {
+                const isbn = document.getElementById("updateIsbn").value;
+                const title = document.getElementById("updateTitle").value;
+                const author = document.getElementById("updateAuthor").value;
+                const year = document.getElementById("updateYear").value;
+                if (!isbn) throw new Error("ISBN boş olamaz!");
+                const res = await fetch(`${API_URL}/books/${isbn}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ title, author, year: year ? parseInt(year) : null })
+                });
+                if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
+                const data = await res.json();
+                alert(data.message || "Kitap güncellendi!");
+                getBooks();
+            } catch (error) {
+                alert(`Hata: ${error.message}`);
+            }
+        }
+
+        async function deleteBook() {
+            try {
+                const isbn = document.getElementById("deleteIsbn").value;
+                if (!isbn) throw new Error("ISBN boş olamaz!");
+                const res = await fetch(`${API_URL}/books/${isbn}`, { method: "DELETE" });
+                if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
+                const data = await res.json();
+                alert(data.message || "Kitap silindi!");
+                getBooks();
+            } catch (error) {
+                alert(`Hata: ${error.message}`);
+            }
+        }
+    </script>
+</body>
+</html>
